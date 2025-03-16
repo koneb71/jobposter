@@ -1,0 +1,223 @@
+{% extends 'jobs/base.html' %}
+
+{% block title %}Analytics Dashboard | JobPoster{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-left: 4px solid;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-card.primary { border-left-color: var(--primary-color); }
+    .stat-card.success { border-left-color: #28a745; }
+    .stat-card.info { border-left-color: #17a2b8; }
+    .stat-card.warning { border-left-color: #ffc107; }
+    
+    .stat-icon {
+        font-size: 2rem;
+        opacity: 0.2;
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="section-title">Analytics Dashboard</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="filterData('week')">Week</button>
+            <button class="btn btn-outline-primary" onclick="filterData('month')">Month</button>
+            <button class="btn btn-outline-primary" onclick="filterData('year')">Year</button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card primary">
+                <div class="card-body">
+                    <i class="fas fa-briefcase stat-icon"></i>
+                    <h6 class="text-muted mb-1">Active Jobs</h6>
+                    <h3 class="mb-0">{{ active_jobs_count }}</h3>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> {{ active_jobs_growth }}% from last month
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card success">
+                <div class="card-body">
+                    <i class="fas fa-users stat-icon"></i>
+                    <h6 class="text-muted mb-1">Total Applications</h6>
+                    <h3 class="mb-0">{{ total_applications }}</h3>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> {{ applications_growth }}% from last month
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card info">
+                <div class="card-body">
+                    <i class="fas fa-chart-line stat-icon"></i>
+                    <h6 class="text-muted mb-1">Application Rate</h6>
+                    <h3 class="mb-0">{{ application_rate }}</h3>
+                    <small class="text-muted">applications per job</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card warning">
+                <div class="card-body">
+                    <i class="fas fa-clock stat-icon"></i>
+                    <h6 class="text-muted mb-1">Avg. Time to Fill</h6>
+                    <h3 class="mb-0">{{ avg_time_to_fill }}</h3>
+                    <small class="text-muted">days</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Applications Over Time</h5>
+                    <div class="chart-container">
+                        <canvas id="applicationsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Job Types Distribution</h5>
+                    <div class="chart-container">
+                        <canvas id="jobTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Application Status</h5>
+                    <div class="chart-container">
+                        <canvas id="applicationStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Top Job Locations</h5>
+                    <div class="chart-container">
+                        <canvas id="locationsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Chart configurations and data
+    const applicationsChartCtx = document.getElementById('applicationsChart').getContext('2d');
+    const jobTypesChartCtx = document.getElementById('jobTypesChart').getContext('2d');
+    const applicationStatusChartCtx = document.getElementById('applicationStatusChart').getContext('2d');
+    const locationsChartCtx = document.getElementById('locationsChart').getContext('2d');
+
+    // Applications Over Time Chart
+    new Chart(applicationsChartCtx, {
+        type: 'line',
+        data: {
+            labels: {{ applications_timeline_labels|safe }},
+            datasets: [{
+                label: 'Applications',
+                data: {{ applications_timeline_data }},
+                borderColor: '#FF5A5F',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Job Types Distribution Chart
+    new Chart(jobTypesChartCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ job_types_labels|safe }},
+            datasets: [{
+                data: {{ job_types_data }},
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Application Status Chart
+    new Chart(applicationStatusChartCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ status_labels|safe }},
+            datasets: [{
+                label: 'Applications',
+                data: {{ status_data }},
+                backgroundColor: '#FF5A5F'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Top Locations Chart
+    new Chart(locationsChartCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ locations_labels|safe }},
+            datasets: [{
+                label: 'Jobs',
+                data: {{ locations_data }},
+                backgroundColor: '#00A699'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y'
+        }
+    });
+
+    function filterData(period) {
+        // Add AJAX call to update data based on selected period
+        // This will be implemented in the next step
+    }
+</script>
+{% endblock %} 

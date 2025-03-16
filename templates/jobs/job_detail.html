@@ -9,45 +9,48 @@
         <div class="col-lg-8">
             <div class="card mb-4">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-4">
-                        {% if job.company_logo %}
-                            <img src="{{ job.company_logo.url }}" alt="{{ job.company }}" class="company-logo me-3">
-                        {% else %}
-                            <div class="company-logo d-flex align-items-center justify-content-center me-3">
-                                <i class="fas fa-building text-secondary"></i>
-                            </div>
-                        {% endif %}
+                    <div class="d-flex justify-content-between align-items-start mb-4">
                         <div>
-                            <h1 class="h3 job-title mb-1">{{ job.title }}</h1>
-                            <p class="job-company mb-0">{{ job.company }}</p>
+                            <h1 class="card-title mb-2">{{ job.title }}</h1>
+                            <h5 class="text-muted mb-0">{{ job.company }}</h5>
                         </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <span class="job-type-badge me-2">{{ job.get_employment_type_display }}</span>
-                        <span class="text-muted">Posted {{ job.posted_date|timesince }} ago</span>
-                        {% if job.deadline %}
-                            <span class="text-danger ms-2">
-                                <i class="fas fa-clock me-1"></i> Deadline: {{ job.deadline|date:"F j, Y" }}
-                            </span>
+                        {% if user.is_authenticated and user == job.user %}
+                            <div class="btn-group">
+                                <a href="{% url 'job-update' job.pk %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-edit me-1"></i> Edit
+                                </a>
+                                <a href="{% url 'job-delete' job.pk %}" class="btn btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i> Delete
+                                </a>
+                            </div>
                         {% endif %}
                     </div>
                     
                     <div class="row mb-4">
-                        <div class="col-md-6 mb-3 mb-md-0">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-map-marker-alt text-secondary me-2"></i>
-                                <span>{{ job.location }}</span>
-                            </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                {{ job.location }}
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-briefcase text-primary me-2"></i>
+                                {{ job.get_employment_type_display }}
+                            </p>
+                            <p class="mb-0">
+                                <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                                {{ job.salary_range }}
+                            </p>
                         </div>
-                        {% if job.salary_range %}
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-money-bill-wave text-secondary me-2"></i>
-                                    <span>{{ job.salary_range }}</span>
-                                </div>
-                            </div>
-                        {% endif %}
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <i class="fas fa-clock text-primary me-2"></i>
+                                Posted {{ job.created_at|timesince }} ago
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                Deadline: {{ job.deadline|date:"F j, Y" }}
+                            </p>
+                        </div>
                     </div>
                     
                     <div class="mb-4">
@@ -64,14 +67,62 @@
                         </div>
                     </div>
                     
-                    {% if user.is_authenticated %}
-                        <div class="d-flex">
-                            <a href="{% url 'job-update' job.pk %}" class="btn btn-outline-primary me-2">
-                                <i class="fas fa-edit me-1"></i> Edit
-                            </a>
-                            <a href="{% url 'job-delete' job.pk %}" class="btn btn-outline-danger">
-                                <i class="fas fa-trash-alt me-1"></i> Delete
-                            </a>
+                    {% if user.is_authenticated and user == job.user %}
+                        <!-- Applications Section -->
+                        <div class="mt-5">
+                            <h4 class="mb-4">Applications ({{ applications.count }})</h4>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Applicant</th>
+                                            <th>Status</th>
+                                            <th>Applied</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for application in applications %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-2">
+                                                            {% if application.resume %}
+                                                                <i class="fas fa-file-alt text-primary"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-user text-secondary"></i>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ application.full_name }}</div>
+                                                            <div class="small text-muted">{{ application.email }}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge {% if application.status == 'pending' %}bg-warning{% elif application.status == 'reviewed' %}bg-info{% elif application.status == 'shortlisted' %}bg-primary{% elif application.status == 'rejected' %}bg-danger{% else %}bg-success{% endif %}">
+                                                        {{ application.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ application.applied_date|date:"M j, Y" }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="{% url 'application-review' job.pk application.pk %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye me-1"></i> Review
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="4" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No applications yet</p>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
