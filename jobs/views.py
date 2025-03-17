@@ -284,3 +284,59 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         })
         
         return context
+
+class JobListView(ListView):
+    model = JobListing
+    template_name = 'jobs/job_listings.html'
+    context_object_name = 'jobs'
+    paginate_by = 12
+    
+    def get_queryset(self):
+        queryset = JobListing.objects.filter(is_active=True)
+        
+        # Employment Type Filter
+        employment_types = self.request.GET.getlist('employment_type')
+        if employment_types:
+            queryset = queryset.filter(employment_type__in=employment_types)
+        
+        # Location Filter
+        location = self.request.GET.get('location', '')
+        if location:
+            queryset = queryset.filter(location__icontains=location)
+        
+        # Salary Range Filter
+        min_salary = self.request.GET.get('min_salary')
+        max_salary = self.request.GET.get('max_salary')
+        if min_salary:
+            queryset = queryset.filter(salary_min__gte=min_salary)
+        if max_salary:
+            queryset = queryset.filter(salary_max__lte=max_salary)
+        
+        # Date Posted Filter
+        date_posted = self.request.GET.get('date_posted')
+        if date_posted:
+            days_ago = int(date_posted)
+            date_threshold = timezone.now() - timedelta(days=days_ago)
+            queryset = queryset.filter(created_at__gte=date_threshold)
+        
+        # Sorting
+        sort = self.request.GET.get('sort', 'recent')
+        if sort == 'salary_high':
+            queryset = queryset.order_by('-salary_max', '-created_at')
+        elif sort == 'salary_low':
+            queryset = queryset.order_by('salary_min', '-created_at')
+        else:  # recent
+            queryset = queryset.order_by('-created_at')
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['employment_types'] = JobListing.EMPLOYMENT_TYPES
+        context['selected_types'] = self.request.GET.getlist('employment_type')
+        context['selected_location'] = self.request.GET.get('location', '')
+        context['min_salary'] = self.request.GET.get('min_salary')
+        context['max_salary'] = self.request.GET.get('max_salary')
+        context['date_posted'] = self.request.GET.get('date_posted')
+        context['sort'] = self.request.GET.get('sort', 'recent')
+        return context

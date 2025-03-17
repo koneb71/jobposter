@@ -1,0 +1,172 @@
+{% extends 'jobs/base.html' %}
+
+{% block title %}Job Listings | JobPoster{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Filters Sidebar -->
+        <div class="col-lg-3">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Filters</h5>
+                    <form method="GET" action="{% url 'job-listings' %}">
+                        <!-- Employment Type -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">Employment Type</h6>
+                            {% for value, label in employment_types %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="employment_type" 
+                                       value="{{ value }}" id="type_{{ value }}"
+                                       {% if value in selected_types %}checked{% endif %}>
+                                <label class="form-check-label" for="type_{{ value }}">
+                                    {{ label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Location -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">Location</h6>
+                            <input type="text" class="form-control" name="location" 
+                                   placeholder="Enter location" value="{{ selected_location }}">
+                        </div>
+
+                        <!-- Salary Range -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">Salary Range</h6>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" name="min_salary" 
+                                       placeholder="Min" value="{{ min_salary }}">
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" name="max_salary" 
+                                       placeholder="Max" value="{{ max_salary }}">
+                            </div>
+                        </div>
+
+                        <!-- Date Posted -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">Date Posted</h6>
+                            <select class="form-select" name="date_posted">
+                                <option value="">Any time</option>
+                                <option value="1" {% if date_posted == '1' %}selected{% endif %}>Last 24 hours</option>
+                                <option value="7" {% if date_posted == '7' %}selected{% endif %}>Last 7 days</option>
+                                <option value="30" {% if date_posted == '30' %}selected{% endif %}>Last 30 days</option>
+                                <option value="90" {% if date_posted == '90' %}selected{% endif %}>Last 90 days</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-2"></i> Apply Filters
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Job Listings -->
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title">Job Listings</h2>
+                <div class="d-flex gap-2">
+                    <select class="form-select" onchange="window.location.href=this.value">
+                        <option value="{% url 'job-listings' %}?sort=recent" {% if sort == 'recent' %}selected{% endif %}>Most Recent</option>
+                        <option value="{% url 'job-listings' %}?sort=salary_high" {% if sort == 'salary_high' %}selected{% endif %}>Highest Salary</option>
+                        <option value="{% url 'job-listings' %}?sort=salary_low" {% if sort == 'salary_low' %}selected{% endif %}>Lowest Salary</option>
+                    </select>
+                </div>
+            </div>
+
+            {% if jobs %}
+                <div class="row g-4">
+                    {% for job in jobs %}
+                        <div class="col-md-6">
+                            <div class="card job-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        {% if job.company_logo %}
+                                            <img src="{{ job.company_logo.url }}" alt="{{ job.company }}" class="company-logo me-3">
+                                        {% else %}
+                                            <div class="company-logo d-flex align-items-center justify-content-center me-3">
+                                                <i class="fas fa-building text-secondary"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h5 class="job-title mb-1">{{ job.title }}</h5>
+                                            <p class="job-company mb-0">{{ job.company }}</p>
+                                        </div>
+                                    </div>
+                                    <p class="job-location mb-2">
+                                        <i class="fas fa-map-marker-alt me-1 text-secondary"></i> {{ job.location }}
+                                    </p>
+                                    <span class="job-type-badge mb-3 d-inline-block" data-type="{{ job.employment_type }}">
+                                        {{ job.get_employment_type_display }}
+                                    </span>
+                                    <p class="text-truncate-3 mb-3">{{ job.description|truncatechars:150 }}</p>
+                                    <p class="mb-3">
+                                        <i class="fas fa-money-bill-wave me-1 text-secondary"></i>
+                                        {{ job.salary_currency }} {{ job.salary_min|floatformat:2 }} - {{ job.salary_max|floatformat:2 }}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">Posted {{ job.created_at|timesince }} ago</small>
+                                        <a href="{% url 'job-detail' job.pk %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                    <div class="d-flex justify-content-center mt-5">
+                        <nav>
+                            <ul class="pagination">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% if request.GET.employment_type %}&employment_type={{ request.GET.employment_type }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}{% if request.GET.min_salary %}&min_salary={{ request.GET.min_salary }}{% endif %}{% if request.GET.max_salary %}&max_salary={{ request.GET.max_salary }}{% endif %}{% if request.GET.date_posted %}&date_posted={{ request.GET.date_posted }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">First</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.employment_type %}&employment_type={{ request.GET.employment_type }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}{% if request.GET.min_salary %}&min_salary={{ request.GET.min_salary }}{% endif %}{% if request.GET.max_salary %}&max_salary={{ request.GET.max_salary }}{% endif %}{% if request.GET.date_posted %}&date_posted={{ request.GET.date_posted }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}{% if request.GET.employment_type %}&employment_type={{ request.GET.employment_type }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}{% if request.GET.min_salary %}&min_salary={{ request.GET.min_salary }}{% endif %}{% if request.GET.max_salary %}&max_salary={{ request.GET.max_salary }}{% endif %}{% if request.GET.date_posted %}&date_posted={{ request.GET.date_posted }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.employment_type %}&employment_type={{ request.GET.employment_type }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}{% if request.GET.min_salary %}&min_salary={{ request.GET.min_salary }}{% endif %}{% if request.GET.max_salary %}&max_salary={{ request.GET.max_salary }}{% endif %}{% if request.GET.date_posted %}&date_posted={{ request.GET.date_posted }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">Next</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.employment_type %}&employment_type={{ request.GET.employment_type }}{% endif %}{% if request.GET.location %}&location={{ request.GET.location }}{% endif %}{% if request.GET.min_salary %}&min_salary={{ request.GET.min_salary }}{% endif %}{% if request.GET.max_salary %}&max_salary={{ request.GET.max_salary }}{% endif %}{% if request.GET.date_posted %}&date_posted={{ request.GET.date_posted }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">Last</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-secondary mb-3"></i>
+                    <h3>No job listings found</h3>
+                    <p class="text-muted">Try adjusting your filters or check back later for new opportunities.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

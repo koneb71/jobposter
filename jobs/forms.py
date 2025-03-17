@@ -21,8 +21,8 @@ class UserProfileForm(forms.ModelForm):
 class JobListingForm(forms.ModelForm):
     class Meta:
         model = JobListing
-        fields = ['title', 'location', 'description', 'requirements', 
-                  'employment_type', 'salary_range', 'deadline']
+        fields = ['title', 'location', 'description', 'requirements', 'employment_type', 
+                 'salary_min', 'salary_max', 'salary_currency', 'deadline']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 5}),
             'requirements': forms.Textarea(attrs={'rows': 5}),

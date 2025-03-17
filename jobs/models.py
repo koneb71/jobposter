@@ -23,6 +23,14 @@ class JobListing(models.Model):
         ('contract', 'Contract'),
         ('internship', 'Internship'),
     ]
+
+    CURRENCY_CHOICES = [
+        ('USD', 'US Dollar'),
+        ('EUR', 'Euro'),
+        ('GBP', 'British Pound'),
+        ('CAD', 'Canadian Dollar'),
+        ('AUD', 'Australian Dollar'),
+    ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='job_listings')
     title = models.CharField(max_length=200)
@@ -30,7 +38,9 @@ class JobListing(models.Model):
     description = models.TextField()
     requirements = models.TextField()
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPES)
-    salary_range = models.CharField(max_length=100)
+    salary_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    salary_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    salary_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
     deadline = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -46,6 +56,10 @@ class JobListing(models.Model):
     @property
     def company_logo(self):
         return self.user.profile.company_logo
+
+    @property
+    def salary_range(self):
+        return f"{self.salary_currency} {self.salary_min:,.2f} - {self.salary_max:,.2f}"
 
     def get_absolute_url(self):
         return reverse('job-detail', kwargs={'pk': self.pk})

@@ -40,7 +40,16 @@
                                 {{ form.employment_type|as_crispy_field }}
                             </div>
                             <div class="col-md-6 mb-3">
-                                {{ form.salary_range|as_crispy_field }}
+                                {{ form.salary_currency|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.salary_min|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.salary_max|as_crispy_field }}
                             </div>
                         </div>
                         
